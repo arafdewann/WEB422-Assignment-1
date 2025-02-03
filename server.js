@@ -20,10 +20,18 @@ const HTTP_PORT = process.env.HTTP_PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Database Connection
+// Initialize Database Connection & Start Server
 db.initialize(process.env.MONGODB_CONN_STRING)
-  .then(() => console.log("Database Connected!"))
-  .catch(err => console.log(err));
+  .then(() => {
+    console.log("✅ Database Connected!");
+    app.listen(HTTP_PORT, () => {
+      console.log(`🚀 Server listening on port ${HTTP_PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error("❌ Database Connection Failed!", err);
+    process.exit(1); // Exit if DB connection fails
+  });
 
 // Default Route
 app.get("/", (req, res) => {
@@ -44,7 +52,7 @@ app.post("/api/listings", async (req, res) => {
 app.get("/api/listings", async (req, res) => {
   const { page = 1, perPage = 10, name } = req.query;
   try {
-    const listings = await db.getListings(Number(page), Number(perPage), name);
+    const listings = await db.getAllListings(Number(page), Number(perPage), name);
     res.json(listings);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -55,7 +63,7 @@ app.get("/api/listings", async (req, res) => {
 app.get("/api/listings/:id", async (req, res) => {
   try {
     const listing = await db.getListingById(req.params.id);
-    if (!listing) return res.status(404).send("Listing not found.");
+    if (!listing) return res.status(404).json({ error: "Listing not found." });
     res.json(listing);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -66,6 +74,7 @@ app.get("/api/listings/:id", async (req, res) => {
 app.put("/api/listings/:id", async (req, res) => {
   try {
     const updatedListing = await db.updateListing(req.params.id, req.body);
+    if (!updatedListing) return res.status(404).json({ error: "Listing not found." });
     res.json(updatedListing);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -75,14 +84,10 @@ app.put("/api/listings/:id", async (req, res) => {
 // ➤ DELETE: Remove a listing by ID
 app.delete("/api/listings/:id", async (req, res) => {
   try {
-    await db.deleteListing(req.params.id);
+    const result = await db.deleteListing(req.params.id);
+    if (!result) return res.status(404).json({ error: "Listing not found." });
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-// Start Server
-app.listen(HTTP_PORT, () => {
-  console.log(`Server listening on port ${HTTP_PORT}`);
 });
