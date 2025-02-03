@@ -7,8 +7,6 @@
  *  
  *  Name: MD ARAFAT KOYES
  *  Student ID: 133682229
- *  Date: [Submission Date]  
- *  Published URL: [Your Vercel API URL]  
  ********************************************************************************/
 
 const express = require("express");
